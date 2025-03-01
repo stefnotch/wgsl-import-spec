@@ -102,7 +102,8 @@ Then, one iterates over each segment from left to right, and looks it up one by 
 1. We start with the first segment.
     - `super` refers to the parent module. Can be repeated to go up multiple parent modules. Exiting the root is an error.
     - `package` refers to the top level module of the current package.
-    - `ident` must be a known package, usually found in the `wgsl.toml` file. It refers to the top level module of that package.
+    - `ident` refers to an identifier that is in scope. If there is none. it falls back to a package.
+        - Packages are usually found in the `wgsl.toml` file. It refers to the top level module of that package.
 2. We take that as the "current module".
 3. We repeatedly look at the next segment.
     1. Item in current module: Take that item. We must be at the last segment, otherwise it's an error.
@@ -115,6 +116,11 @@ Then, one iterates over each segment from left to right, and looks it up one by 
 
 To get an absolute path to a module, one follows the algorithm above. In step 1, one takes the known absolute path of the `super` module, or the package.
 The absolute path of the `super` module is always known, since the first loaded WESL file must always be the root module, and children are only discovered from there.
+
+Once the import has been resolved, the last segment, or its alias, is brought into scope.
+
+The order of the scopes is "user declarations and imported items > package names > predeclared items".
+This lets WGSL add more predeclared items without breaking existing WESL code. Package names can shadow predeclared items, and authors are encouraged to avoid doing that.
 
 For example
 
@@ -189,6 +195,16 @@ statement:
 
 type_specifier:
 | full_ident ...
+```
+
+Examples
+```wesl
+import foo::bar;
+
+fn main() {
+    let a = bar::baz; // Uses bar from the import above
+    let b = bevy::main(); // Uses the known bevy package
+}
 ```
 
 ## Cyclic Imports
